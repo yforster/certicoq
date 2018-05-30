@@ -61,7 +61,8 @@ Local Unset Elimination Schemes.
 Local Unset Case Analysis Schemes.
 
 Module Make(WS: WORDSIZE).
-
+  
+  
 Definition wordsize: nat := WS.wordsize.
 Definition zwordsize: Z := Z.of_nat wordsize.
 Definition modulus : Z := two_power_nat wordsize.
@@ -90,8 +91,9 @@ Qed.
 (** A machine integer (type [int]) is represented as a Coq arbitrary-precision
   integer (type [Z]) plus a proof that it is in the range 0 (included) to
   [modulus] (excluded). *)
-
-Record int: Type := mkint { intval: Z; intrange: -1 < intval < modulus }.
+Record int_: Type := mkint { intval: Z; intrange: -1 < intval < modulus }.
+Definition int := int_.
+(* Record int: Type := mkint { intval: Z; intrange: -1 < intval < modulus }. *)
 
 (** Fast normalization modulo [2^wordsize] *)
 
