@@ -1,3 +1,4 @@
+Archi
 Ast0
 Basics
 BinInt
@@ -76,7 +77,6 @@ L4_2_to_L4_5
 Fappli_IEEE
 Fappli_IEEE_bits
 Fappli_IEEE_extra
-Archi
 Floats
 Values
 Memtype

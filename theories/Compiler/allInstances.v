@@ -8,7 +8,7 @@ Require Export L2k.instances.
 Require Export L3.instances.
 Require Export L4.instances.
 Require Export L6.instances.
-Require Export L7.Clightexec.
+
 
 Set Template Cast Propositions.
 
@@ -38,7 +38,7 @@ match t with
 |Ret ?xx => exact xx
 end).
 Defined. *)
-
+Import CertiCoq.Libraries.maps_util.
 
 Definition ext_comp := fun prog =>
   let t := (translateTo (cTerm certiL6) prog) in
@@ -48,7 +48,7 @@ Definition ext_comp := fun prog =>
   end.
  
 Require Import L6_to_Clight.
-Require Import Clightexec.
+
 Require Import compcert.lib.Maps.
 Definition argsIdent:positive := 26.
 Definition allocIdent:positive := 28.
@@ -141,7 +141,7 @@ Quote Recursively Definition graph_color := 2.  (*(Color.run G16)*)
 Definition color5 := Eval native_compute in (translateTo (cTerm certiL5) graph_color).   
 (* Definition vs5 := Eval native_compute in (translateTo (cTerm certiL5a) vs).  *)
 
-
+Locate color5.
  
 
 Definition printProg := fun prog file => L6_to_Clight.print_Clight_dest_names (snd prog) (cps.M.elements (fst prog)) file.
@@ -199,60 +199,5 @@ Definition testL6 := match comp_L6 color5 with
 
 
 
-(*  Section TEST_L7. *)
-(* This can be used to test Clight (using an L5 program, extract to ocaml and run to translate to Clight and then run using Clightexec: *)
-
-(*  Definition binom7 :=  compile_opt_L7 (comp_L6 binom5). *)
-(* Definition vs7 :=  compile_opt_L7 (comp_L6 vs5).  *)
- Definition color7 :=  compile_opt_L7 (comp_L6 color5).  
-
-
- (*
-
- Extraction Language Ocaml.
-(* Standard lib -- Comment out if extracting full Compiler using build.sh *)
-Require Import ExtrOcamlBasic.
-Require Import ExtrOcamlString.
-Require Import ExtrOcamlNatInt.
-(* Coqlib *)
-Extract Inlined Constant Coqlib.proj_sumbool => "(fun x -> x)".
-
-Extract Constant L7.L6_to_Clight.print => "print_string".
-
-Definition print_BigStepResult_L7 (p:cps.M.t Ast.name*Clight.program) (n:nat):=
-  L7.L6_to_Clight.print (
-      match (L7.Clightexec.run_wo_main threadInfIdent bodyIdent p n) with
-      | Error s _ => s
-      | OutOfTime _ => "Out of time"
-      | Result v => show_nat (Coqlib.nat_of_Z (Integers.Int.unsigned v))
-      end).
-
-
-
-
-
- 
-
- Definition print_opt_BigStepResult_L7 (po:exception (cps.M.t Ast.name*Clight.program)) n :=
-   match po with
-   | Ret ( nenv, p) => print_BigStepResult_L7 (nenv, p) n
-   | _ => tt
-   end.
-
-
-
-
-
-
-(*Definition testBinom := (print_opt_BigStepResult_L7 binom7 10). *)
-(* Definition testVs := (print_opt_BigStepResult_L7 vs7 10).   *)
-Definition testColor := (print_opt_BigStepResult_L7 color7 10).
-
-(* Extraction "testBinom2_l7.ml" testBinom. *)
-Extraction "testColorT_L7.ml" testColor.  
-(*Extraction "testVs2_L7.ml" testVs.  *)
- 
-*)
-(* End TEST_L7. *)
  
 
