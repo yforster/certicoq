@@ -141,7 +141,7 @@ Quote Recursively Definition graph_color := 2.  (*(Color.run G16)*)
 Definition color5 := Eval native_compute in (translateTo (cTerm certiL5) graph_color).   
 (* Definition vs5 := Eval native_compute in (translateTo (cTerm certiL5a) vs).  *)
 
-Locate color5.
+
  
 
 Definition printProg := fun prog file => L6_to_Clight.print_Clight_dest_names (snd prog) (cps.M.elements (fst prog)) file.
