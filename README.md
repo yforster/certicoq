@@ -111,6 +111,22 @@ and install the packages from source:
 	https://github.com/aa755/SquiggleEq
 	https://github.com/aa755/paramcoq (branch: v8.7)
 
+Choose the architecture:
+----------------------
+By default, Certicoq will be built for x86_64. 
+However, it can be configured for x86_32 by:
+1) In theory/_CoqProject, replace the line
+   	   compcert/x86_64/Archi.v	
+   by
+	  compcert/x86_32/Archi.v	
+
+2) In theory/L7/L6_to_Clight.v, replace the lines
+         Notation val := ulongTy.
+	 Notation uval := ulongTy.
+   by
+         Notation val := uintTy.
+	 Notation uval := uintTy.
+   
 
 Building the compiler:
 ----------------------
