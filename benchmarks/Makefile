@@ -1,4 +1,4 @@
-all: copy demo1 demo2
+all: copy demo demo1 demo2
 
 copy:
 	cp ../theories/Runtime/gc.c ./
@@ -7,6 +7,8 @@ copy:
 	cp ../theories/Runtime/main.c ./
 	cp ../theories/Runtime/config.h ./
 
+demo: demo.v
+	coqc demo.v
 
 demo1: maindemo1.c demo.demo1.c
 	gcc -o demo1 -Wno-everything -O2 maindemo1.c gc.c demo.demo1.c
