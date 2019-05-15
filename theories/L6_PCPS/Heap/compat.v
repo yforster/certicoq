@@ -1576,7 +1576,7 @@ Module Compat (H : Heap).
               intros Hc. subst. eapply Hnin2. now left; eauto.
               eassumption. reflexivity. simpl.
               eapply Eval_app_per_cc.
-              simpl. omega.
+              simpl. omega.   
               rewrite M.gso. rewrite M.gss. reflexivity.
               now intros Hc; subst; eauto.
               eassumption.

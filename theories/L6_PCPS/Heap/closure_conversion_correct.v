@@ -293,7 +293,7 @@ Module ClosureConversionCorrect (H : Heap).
         eapply Included_Union_compat; [reflexivity | ].
         eapply image_monotonic. eapply Included_Setminus_compat.
         eapply project_var_Funs_l. eassumption.
-        eapply project_var_Scope_l. eassumption.
+        eapply project_var_Scope_l. eassumption. 
       + erewrite <- project_var_FV_eq; try eassumption.
   Qed.
     

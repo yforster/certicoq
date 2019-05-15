@@ -28,8 +28,8 @@ Section CC.
     Scope :|: (Funs \\ Scope) :|: (FromList FVs \\ (Scope :|: Funs)).
   
   (* The free-variable set of a closure converted *)
-  Definition FV_cc (Scope : Ensemble var) (Funs : Ensemble var) (γ : var  -> var) (Γ : var) :=
-    Scope :|: (Funs \\ Scope) :|: image γ (Funs \\ Scope) :|: [set Γ].
+  Definition FV_cc (σ : var -> var) (Scope : Ensemble var) (Funs : Ensemble var) (γ : var  -> var) (Γ : var) :=
+    image σ Scope :|: (Funs \\ Scope) :|: image γ (Funs \\ Scope) :|: [set Γ].
 
   (* Closure application *)
   Definition AppClo f t xs f' Γ :=
@@ -38,6 +38,7 @@ Section CC.
                  (Eapp f' t (Γ :: xs))).
 
   (* TODO move *)
+  (* Excludes programs with bogus mutual definitions, that generally, are not safe for safe *) 
   Definition true_mut B :=
     forall f ct xs e, fun_in_fundefs B (f, ct, xs, e) ->
                  occurs_free_fundefs B \subset occurs_free e \/
@@ -75,36 +76,42 @@ Section CC.
            has_true_mut_funs Fnil.    
   
   Inductive project_var :
-    Ensemble var -> (* Variables in the current scope *)
-    Ensemble var -> (* Functions not yet constructed *)
-    (var -> var) -> (* function mapping functions to environments *)
+    Ensemble var -> (* Scope - Variables in the current scope *)
+    Ensemble var -> (* Funs - Functions not yet constructed *)
+    (var -> var) -> (* fenv - function mapping functions to environments *)
     cTag -> (* tag of the current environment constructor *)
     var -> (* Current environment *)
-    list var -> (* The environment *)
-    var -> (* Before projection *)
+    list var -> (* The non-local free vars *)
+
+    (var -> var) -> (* alpha renaming *)
+
+    var -> (* Var before projection/construction *)
+    var -> (* Var after projection/construction *)
+
     exp_ctx -> (* Context that will perform the projection *)
-    Ensemble var -> (* New current scope *)
-    Ensemble var -> (* New funs *)
+    Ensemble var -> (* Scope' - New current scope *)
+    Ensemble var -> (* Funs' - New funs *)   
     Prop :=
   | Var_in_Scope :
-      forall Scope Funs fenv c FVs x Γ,
+      forall Scope Funs fenv c FVs x Γ σ,
         x \in Scope ->
-        project_var Scope Funs fenv c Γ FVs x Hole_c Scope Funs
+        project_var Scope Funs fenv c Γ FVs σ x (σ x) Hole_c Scope Funs
   | Var_in_Funs :
-      forall Scope Funs fenv c FVs f Γ,
+      forall Scope Funs fenv c FVs f Γ σ,
         ~ f \in Scope ->
         f \in Funs ->
         (* adds the function in scope so that it's not constructed again *)
-        project_var Scope Funs fenv c Γ FVs f
-                    (Econstr_c f clo_tag [f ; (fenv f)] Hole_c) (f |: Scope) (Funs \\ [set f])
+        project_var Scope Funs fenv c Γ FVs σ f (σ f)
+                    (Econstr_c (σ f) clo_tag [f ; (fenv f)] Hole_c) (f |: Scope) (Funs \\ [set f])
   | Var_in_FVs :
-      forall Scope Funs fenv c FVs x N Γ,
+      forall Scope Funs fenv c FVs x N Γ σ,
         ~ x \in Scope ->
         ~ x \in Funs ->
         nthN FVs N = Some x ->
         (* adds the var in scope so that it's not projected again *)
-        project_var Scope Funs fenv c Γ FVs x
-                    (Eproj_c x c N Γ Hole_c) (x |: Scope) Funs.
+        project_var Scope Funs fenv c Γ FVs σ x (σ x)
+                    (Eproj_c (σ x) c N Γ Hole_c) (x |: Scope) Funs.
+
   
   Inductive project_vars :
     Ensemble var -> (* Variables in the current scope *)
@@ -113,23 +120,27 @@ Section CC.
     cTag -> (* tag of the current environment constructor *)
     var -> (* The environment argument *)
     list var -> (* The free variables *)
-    list var -> (* Before projection *)
+
+    (var -> var) -> (* alpha renaming *)
+    
+    list var -> (* Before projection/construction *)
+    list var -> (* After projection/construction *)
+    
     exp_ctx -> (* Context that will perform the projection *)
-    Ensemble var -> (* New current scope *)
-    Ensemble var -> (* Funs *)
+    Ensemble var -> (* Scope' -- New current scope *)
+    Ensemble var -> (* Funs' *)
     Prop :=
   | VarsNil :
-      forall Scope Funs fenv c Γ FVs,
-        project_vars Scope Funs fenv c Γ FVs [] Hole_c Scope Funs
+      forall Scope Funs fenv c Γ FVs σ,
+        project_vars Scope Funs fenv c Γ FVs σ [] [] Hole_c Scope Funs
   | VarsCons :
-      forall Scope1 Scope2 Scope3 Funs1 Funs2 Funs3 fenv c Γ FVs y ys C1 C2,
-        project_var Scope1 Funs1 fenv c Γ FVs y C1 Scope2 Funs2 ->
-        project_vars Scope2 Funs2 fenv c Γ FVs ys C2 Scope3 Funs3  ->
-        project_vars Scope1 Funs1 fenv c Γ FVs (y :: ys) (comp_ctx_f C1 C2) Scope3 Funs3.
+      forall Scope1 Scope2 Scope3 Funs1 Funs2 Funs3 fenv c Γ FVs x xs y ys C1 C2 σ,
+        project_var Scope1 Funs1 fenv c Γ FVs σ x y C1 Scope2 Funs2 ->
+        project_vars Scope2 Funs2 fenv c Γ FVs σ xs ys C2 Scope3 Funs3 ->
+        project_vars Scope1 Funs1 fenv c Γ FVs σ (x :: xs) (y :: ys) (comp_ctx_f C1 C2) Scope3 Funs3.
 
   Definition extend_fundefs' (f : var -> var) (B : fundefs) (x : var) : var -> var :=
     fun y => if (@Dec _ (name_in_fundefs B) _) y then x else f y.
-
 
   Inductive Closure_conversion :
     Ensemble var -> (* Variables in the current scope *)
@@ -138,92 +149,91 @@ Section CC.
     cTag -> (* tag of the current environment constructor *)
     var -> (* The environment argument *)
     list var -> (* The free variables - need to be ordered *)
+    (var -> var) -> (* Binder substitution *)
     exp -> (* Before cc *)
     exp -> (* After cc *)
     exp_ctx -> (* The context that the output expression should be put in *)
     Prop :=
   | CC_Econstr :
-      forall Scope Scope' Funs Funs' fenv c Γ FVs x ys C C' t e e',
-        project_vars Scope Funs fenv c Γ FVs ys C Scope' Funs' ->
-        Closure_conversion (x |: Scope') Funs' fenv c Γ FVs e e' C' ->
-        Closure_conversion Scope Funs fenv c Γ FVs (Econstr x t ys e) 
-                           (Econstr x t ys (C' |[ e' ]|)) C
+      forall Scope Scope' Funs Funs' fenv c Γ FVs x ys ys' C C' t e e' σ,
+        project_vars Scope Funs fenv c Γ FVs σ ys ys' C Scope' Funs' ->        
+        Closure_conversion (x |: Scope') Funs' fenv c Γ FVs (σ { x ~> x})  e e' C' ->
+        Closure_conversion Scope Funs fenv c Γ FVs σ (Econstr x t ys e) 
+                           (Econstr x t ys' (C' |[ e' ]|)) C
   | CC_Ecase :
-      forall Scope Scope' Funs Funs' fenv c Γ FVs x C pats pats',
-        project_var Scope Funs fenv c Γ FVs x C Scope' Funs' ->
+      forall Scope Scope' Funs Funs' fenv c Γ FVs x y C pats pats' σ,
+        project_var Scope Funs fenv c Γ FVs σ x y C Scope' Funs' ->
         Forall2 (fun (pat pat' : cTag * exp) =>
                    (fst pat) = (fst pat') /\
                    exists C' e',
                      snd pat' = C' |[ e' ]| /\
-                     Closure_conversion Scope' Funs' fenv c Γ FVs (snd pat) e' C')
+                     Closure_conversion Scope' Funs' fenv c Γ FVs σ (snd pat) e' C')
                 pats pats' ->
-        Closure_conversion Scope Funs fenv c Γ FVs (Ecase x pats) (Ecase x pats') C
+        Closure_conversion Scope Funs fenv c Γ FVs σ (Ecase x pats) (Ecase y pats') C
   | CC_Eproj :
-      forall Scope Scope' Funs Funs' fenv c Γ FVs x y C C' t N e e',
-        project_var Scope Funs fenv c Γ FVs y C Scope' Funs' ->
-        Closure_conversion (x |: Scope') Funs' fenv c Γ FVs e e' C' ->
-        Closure_conversion Scope Funs fenv c Γ FVs (Eproj x t N y e)
-                           (Eproj x t N y (C' |[ e' ]|)) C
+      forall Scope Scope' Funs Funs' fenv c Γ FVs x y y' C C' t N e e' σ,
+        project_var Scope Funs fenv c Γ FVs σ y y' C Scope' Funs' ->
+        Closure_conversion (x |: Scope') Funs' fenv c Γ FVs (σ { x ~> x}) e e' C' ->
+        Closure_conversion Scope Funs fenv c Γ FVs σ (Eproj x t N y e) (Eproj x t N y' (C' |[ e' ]|)) C
   | CC_Efun :
-      forall Scope Scope' Funs Funs' fenv c Γ c' Γ' FVs FVs' B B' e e' C Ce,
+      forall Scope Scope' Funs Funs' fenv c Γ c' Γ' FVs FVs' FVs_sub B B' e e' C Ce σ,
         (* The environment contains all the variables that are free in B *)
         (occurs_free_fundefs B) <--> (FromList FVs') ->
         (* needed for cost preservation *)
         NoDup FVs' ->
-        project_vars Scope Funs fenv c Γ FVs FVs' C Scope' Funs' ->
+        project_vars Scope Funs fenv c Γ FVs σ FVs' FVs_sub C Scope' Funs' ->
         (* Γ' is the variable that will hold the record of the environment *)
-        ~ Γ' \in (bound_var (Efun B e) :|: FromList FVs' :|: FV Scope Funs FVs :|:
-                  FV_cc Scope Funs fenv Γ) ->
+        ~ Γ' \in (bound_var (Efun B e) :|: FromList FVs' :|: FV Scope Funs FVs :|: FV_cc σ Scope Funs fenv Γ) ->
+                 
         (* closure convert function blocks *)
-        Closure_conversion_fundefs B c' FVs' B B' ->
+        Closure_conversion_fundefs B c' FVs' (extend_fundefs σ B B) B B' ->
         (* closure convert the rest of the program *)
         Closure_conversion (Scope' \\ name_in_fundefs B)
-                           ((name_in_fundefs B) :|: Funs') (extend_fundefs' fenv B Γ') c Γ FVs e e' Ce  ->
-        Closure_conversion Scope Funs fenv c Γ FVs (Efun B e)
-                           (Efun B' (Ce |[ e' ]|)) (comp_ctx_f C (Econstr_c Γ' c' FVs' Hole_c))
+                           ((name_in_fundefs B) :|: Funs') (extend_fundefs' fenv B Γ') c Γ FVs (extend_fundefs σ B B) e e' Ce  ->
+        Closure_conversion Scope Funs fenv c Γ FVs σ (Efun B e) (Efun B' (Ce |[ e' ]|)) (comp_ctx_f C (Econstr_c Γ' c' FVs_sub Hole_c))
   | CC_Eapp :
-      forall Scope Scope' Funs Funs' fenv c Γ FVs f f' ft env' ys C S,
-        Disjoint _ S (FV_cc Scope' Funs' fenv Γ) ->
+      forall Scope Scope' Funs Funs' fenv c Γ FVs f g f' ft env' xs ys C S σ,
+        Disjoint _ S (FV_cc σ Scope' Funs' fenv Γ) ->
         (* Project the function name and the actual parameter *)
-        project_vars Scope Funs fenv c Γ FVs (f :: ys) C Scope' Funs' ->
+        project_vars Scope Funs fenv c Γ FVs σ (f :: xs) (g :: ys) C Scope' Funs' ->
         (* The name of the function pointer and the name of the environment
          should not shadow the variables in the current scope and the
          variables that where used in the projections *)
         f' \in S -> env' \in S -> f' <> env' ->
-        Closure_conversion Scope Funs fenv c Γ FVs (Eapp f ft ys) (AppClo f ft ys f' env') C
+        Closure_conversion Scope Funs fenv c Γ FVs σ (Eapp f ft xs) (AppClo g ft ys f' env') C
   | CC_Eprim :
-      forall Scope Scope' Funs Funs' fenv c Γ FVs x ys C C' f e e',
-        project_vars Scope Funs fenv c Γ FVs ys C Scope' Funs' ->
-        Closure_conversion (x |: Scope') Funs' fenv c Γ FVs e e' C' ->
-        Closure_conversion Scope Funs fenv c Γ FVs (Eprim x f ys e)
-                           (Eprim x f ys (C' |[ e' ]|)) C
+      forall Scope Scope' Funs Funs' fenv c Γ FVs x ys ys' C C' f e e' σ,
+        project_vars Scope Funs fenv c Γ FVs σ ys ys' C Scope' Funs' ->
+        Closure_conversion (x |: Scope') Funs' fenv c Γ FVs (σ { x ~> x}) e e' C' ->
+        Closure_conversion Scope Funs fenv c Γ FVs σ (Eprim x f ys e)
+                           (Eprim x f ys' (C' |[ e' ]|)) C
   | CC_Ehalt :
-      forall Scope Scope' Funs Funs' fenv c Γ FVs x C,
+      forall Scope Scope' Funs Funs' fenv c Γ FVs x y C σ,
         (* Project the function name and the actual parameter *)
-        project_var Scope Funs fenv c Γ FVs x C Scope' Funs' ->
-        Closure_conversion Scope Funs fenv c Γ FVs (Ehalt x) (Ehalt x) C
+        project_var Scope Funs fenv c Γ FVs σ x y C Scope' Funs' ->
+        Closure_conversion Scope Funs fenv c Γ FVs σ (Ehalt x) (Ehalt y) C
   with Closure_conversion_fundefs :
          fundefs -> (* The current block. Needed to make closures upon entry. *)
          cTag -> (* tag of the current environment constructor *)
          list var -> (* The environment *)
+         (var -> var) -> (* Binder substitution *)
          fundefs -> (* Before cc *)
          fundefs -> (* After cc *)
          Prop :=
        | CC_Fccons :
-           forall B c Γ' FVs S f t ys e e' C defs defs',
+           forall B c Γ' FVs f t ys e e' C defs defs' σ,
              (* The environment binding should not shadow the current scope
                (i.e. the names of the mut. rec. functions and the other arguments) *)
-             Disjoint _ S ((name_in_fundefs B) :|: (FromList ys) :|: (bound_var e) :|: FromList FVs) ->
-             (* new argument *)
-             In _ S  Γ' ->
-             Closure_conversion_fundefs B c FVs defs defs' ->
+             ~ Γ' \in ((name_in_fundefs B) :|: (FromList ys) :|: (bound_var e) :|: FromList FVs) ->
+
+             Closure_conversion_fundefs B c FVs σ defs defs' ->
              Closure_conversion (FromList ys) (name_in_fundefs B) (extend_fundefs' id B Γ')
-                                c Γ' FVs e e' C ->
-             Closure_conversion_fundefs B c FVs (Fcons f t ys e defs )
+                                c Γ' FVs (σ <{ ys ~> ys }>) e e' C ->
+             Closure_conversion_fundefs B c FVs σ (Fcons f t ys e defs )
                                         (Fcons f t (Γ' :: ys) (C |[ e' ]|) defs')
        | CC_Fnil :
-           forall B c FVs,
-             Closure_conversion_fundefs B c FVs Fnil Fnil.
+           forall B c FVs σ,
+             Closure_conversion_fundefs B c FVs σ Fnil Fnil.
   
 
   (** * Computational defintion of closure conversion *)

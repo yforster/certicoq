@@ -5,7 +5,7 @@
 From Coq Require Import Lists.List Lists.SetoidList NArith.BinNat PArith.BinPos
          MSets.MSetRBT Lists.List Sets.Ensembles Omega Sorting.Permutation Logic.Decidable.
 Require Import compcert.lib.Coqlib.
-From CertiCoq.L6 Require Import cps cps_util ctx set_util Ensembles_util List_util size_cps tactics.
+From CertiCoq.L6 Require Import functions cps cps_util ctx set_util Ensembles_util List_util size_cps tactics.
 
 Import ListNotations.
 
@@ -107,6 +107,15 @@ Proof.
   eassumption.
 Qed.
 
+Lemma extend_fundefs_gso f B1 B2 x :
+  ~ x \in name_in_fundefs B1 ->
+  extend_fundefs f B1 B2 x = f x.
+Proof.
+  intros Hnin. revert B2; induction B1; intros B2; destruct B2; eauto. 
+  simpl. rewrite extend_gso. eapply IHB1.
+  intros Hc. eapply Hnin. now right. 
+  intros Hc; subst; eauto.  eapply Hnin; now left. 
+Qed. 
 
 (** Alternative definition of [name_in_fundefs] using set comprehension:  
    [names_in_fundefs b] = $\{ f ~|~ \exists ~xs ~tau ~e,~(f, ~xs, ~tau, ~e) \in B \}$ *)

@@ -657,6 +657,35 @@ Module HeapEquiv (H : Heap).
     split; eapply heap_env_approx_empty.
   Qed.
 
+  Lemma heap_env_approx_res_approx 
+        (S : Ensemble var) (β : loc -> loc)
+        (H1 H2 : heap block) (rho1 rho2 : M.t value) l :
+    heap_env_approx S (β, (H1, rho1)) (id, (H2, rho2)) ->
+    l \in env_locs rho1 S ->
+    (Loc l, H1) ≈_(β, id) (Loc (β l), H2).
+  Proof.
+    intros Henv [x [Heq1 Heq2]].
+    destruct (M.get x rho1) as [[l1|] |] eqn:Hget; inv Heq2.
+    edestruct Henv as [v2 [Hget2 Hres]]; eauto.
+    assert (Hres' := Hres). rewrite res_equiv_eq in Hres.
+    destruct v2 as [l2|]; try contradiction. simpl in Hres.
+    destruct Hres as [Hres'' _]. unfold id in *; subst.
+    eassumption.
+  Qed.
+
+  Lemma heap_env_equiv_res_equiv
+        (S : Ensemble var) (β : loc -> loc)
+        (H1 H2 : heap block) (rho1 rho2 : M.t value) l :
+    S |- (H1, rho1) ⩪_(id, β) (H2, rho2) ->
+    l \in env_locs rho2 S ->
+    (Loc (β l), H1) ≈_(id, β) (Loc l, H2).
+  Proof.
+    intros Henv Hin.
+    symmetry. eapply heap_env_approx_res_approx.
+    destruct Henv. eassumption.
+    eassumption.
+  Qed.
+
   (** Heap equivalences respect functional extensionality *)
 
   Instance Proper_res_approx_f_eq_l : Proper (eq ==> RelProd f_eq eq ==> eq ==> iff) res_approx_fuel.
@@ -1122,7 +1151,7 @@ Module HeapEquiv (H : Heap).
         split; eapply res_equiv_f_compose; eauto.
       - eapply heap_env_equiv_f_compose; eauto.
     Qed.
-
+    
     (* Lemma heap_equiv_f_compose S (β1 β2 β3 β4 : loc -> loc) (H1 H2 H3 : heap block) : *)
     (*   S |- H1 ≃_(β1, β2 ∘ β4) H2 -> *)
     (*   S |- H2 ≃_(β4, β3) H3 -> *)
@@ -2214,6 +2243,15 @@ Module HeapEquiv (H : Heap).
   Proof.
     simpl; split; eauto.
   Qed.
+
+  Lemma block_equiv_Constr_r β1 β2 (H1 H2 : heap block) (c1 c2 : cTag)
+        (vs vs' : list value) :
+    block_equiv (β1, H1, Constr c1 vs) (β2, H2, Constr c2 vs') ->
+    Forall2 (fun l1 l2 => (l1, H1) ≈_(β1, β2) (l2, H2)) vs vs'.
+  Proof.
+    intros [Heq Hall]; eauto.
+  Qed.
+
   
   Lemma block_equiv_Fun β1 β2 (H1 H2 : heap block) (rho1 rho2 : env) :
     Full_set _ |- (H1, rho1) ⩪_(β1, β2) (H2, rho2) ->

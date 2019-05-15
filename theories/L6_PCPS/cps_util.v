@@ -173,6 +173,18 @@ Proof.
   revert B1. induction B2; intros B1 H; auto; inv H; f_equal; eauto.
 Qed.
 
+(** Forall2 fundefs *)
+
+Inductive Forall2_fundefs (P : (var * fTag * list var * exp) -> (var * fTag * list var * exp) -> Prop): fundefs -> fundefs -> Prop :=
+| Forall2_Fnil : Forall2_fundefs P Fnil Fnil 
+| Forall2_Fcons :
+    forall x1 x2 t1 t2 xs1 xs2 e1 e2 B1 B2,
+      Forall2_fundefs P B1 B2 ->
+      P (x1, t1, xs1, e1) (x2, t2, xs2, e2) ->
+      Forall2_fundefs P (Fcons x1 t1 xs1 e2 B1) (Fcons x2 t2 xs2 e2 B2).
+
+
+
 (** Append function definitions *)
 Fixpoint fundefs_append (B1 B2 : fundefs) : fundefs :=
   match B1 with
@@ -671,6 +683,18 @@ Proof.
   - inv Hc. destruct y as [t'' e'']. simpl in *. subst.
     econstructor; now eauto.
 Qed.
+
+(** ** Extend a function with bindings for variable names *)
+Fixpoint extend_fundefs (f: var -> var) (B B' : fundefs) : (var -> var) :=
+  match B with
+    | Fnil => f
+    | Fcons g _ _ _ B =>
+      match B' with
+        | Fnil => f
+        | Fcons g' _ _ _ B' =>
+          (extend_fundefs f B B'){g ~> g'}
+      end
+  end.
 
 (** ** Existance (or not) of a binding in a map -- TODO : maybe move the a map_util.v? *)
 

@@ -17,17 +17,6 @@ Open Scope fun_scope.
 Close Scope Z_scope.
 
 
-Fixpoint extend_fundefs (f: var -> var) (B B' : fundefs) : (var -> var) :=
-  match B with
-    | Fnil => f
-    | Fcons g _ _ _ B =>
-      match B' with
-        | Fnil => f
-        | Fcons g' _ _ _ B' =>
-          (extend_fundefs f B B'){g ~> g'}
-      end
-  end.
-
 Inductive construct_lst_injection : (var -> var) -> list var -> list var -> (var -> var) -> Prop :=
 | Inj_nil :
     forall f, construct_lst_injection f [] [] f
