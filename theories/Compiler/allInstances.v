@@ -81,15 +81,50 @@ Definition compile_opt_L7 p  :=
 Definition compile_template_L4 `{F:utils.Fuel} (p : Template.Ast.program) : exception (cTerm certiL4) :=
   translateTo (cTerm certiL4) p.
 
+
+Require Import L6.cps L6.cps_show.
+
+From CertiCoq.L6 Require Import uncurry shrink_cps beta_contraction
+     closure_conversion hoisting cps.  
+
+(* Instance from L4 to L6 *)
+
+Instance certiL4_t0_L6: 
+  CerticoqTranslation (cTerm certiL4) (cTerm certiL6) := 
+  fun v =>
+    match v with
+    | pair venv vt =>
+      (match L4_to_L6.convert_top (venv, vt) with
+      | Some r =>         
+        let '(cenv, nenv, fenv, next_cTag, next_iTag, e) :=  r in
+        let '(e, (d, s), fenv) := uncurry_fuel 100 (shrink_cps.shrink_top e) fenv in   
+        (* let e := postuncurry_contract e s d in            *)
+        (* let e := shrink_cps.shrink_top e in  *)
+        (* let e :=  inlinesmall_contract e 10 10 in *)
+        let e := inline_uncurry_contract e s 10 10 in  
+        let e := shrink_cps.shrink_top e in
+        let '(cenv',nenv', t') := closure_conversion_hoist
+                                    bogus_cloTag
+                                    e
+                                    next_cTag
+                                    next_iTag
+                                    cenv nenv
+        in
+        Ret ((M.empty _ , (add_cloTag bogus_cloTag bogus_cloiTag cenv'), nenv', M.empty _),  (M.empty _,   shrink_top t'))
+      | None => Exc "failed converting from L4 to L6"
+      end)
+    end.
+
+
 Definition compile_template_L7 `{F:utils.Fuel} (p : Template.Ast.program) : exception (L5_to_L6.nEnv * Clight.program * Clight.program)  :=
   compile_opt_L7 (translateTo (cTerm certiL6) p).
 
+(* Set Printing Implicit. *)
+
+
 Open Scope positive_scope.
-  
 
 
-
-Require Import L6.cps L6.cps_show.
 
 Definition show_exn  (x : exceptionMonad.exception (cTerm certiL6)) : string :=
   match x with
@@ -129,24 +164,29 @@ Instance fuel : utils.Fuel := { fuel := 2 ^ 14 }.
 (*  Quote Recursively Definition vs := vs.main_h.  (*ce_example_ent*) *)
  Quote Recursively Definition binom := Binom.main.    
 (* Quote Recursively Definition graph_color := Color.ex_2.  (*(Color.run G16)*)    *)
-Quote Recursively Definition graph_color := (2+3).  (*(Color.run G16)*)   
+Quote Recursively Definition graph_color := (2+3).  (*(Color.run G16)*) 
 
+Quote Recursively Definition simple_test :=
+  ((fun x => x) 1). 
 
+Definition demo_test :=
+  Eval native_compute in (translateTo (cTerm certiL4) simple_test).
 
-
+Print demo_test. 
   
- Definition demo4 := Eval native_compute in (translateTo (cTerm certiL4) graph_color). 
+Definition demo4 := Eval native_compute in (translateTo (cTerm certiL4) graph_color). 
 
- Print demo4.
- Definition demo5 := Eval native_compute in (translateTo (cTerm certiL5) Demo1).
- Set Printing Depth 1000.
- Print demo5.
- Definition binom4 := Eval native_compute in (translateTo (cTerm certiL4) binom). 
- Definition binom5 := Eval native_compute in (translateTo (cTerm certiL5) binom). 
+Print demo4. (*
+Definition demo5 := Eval native_compute in (translateTo (cTerm certiL5) Demo1).
+Set Printing Depth 1000.
+Print demo5.
+Definition binom4 := Eval native_compute in (translateTo (cTerm certiL4) binom). 
+Definition binom5 := Eval native_compute in (translateTo (cTerm certiL5) binom). 
 
 Definition color5 := Eval native_compute in (translateTo (cTerm certiL5) graph_color).
  
 Print color5.
+*)
 
 
 
@@ -165,6 +205,7 @@ Definition binom3 := Eval native_compute in (translateTo (cTerm certiL3_eta) bin
 
 
 Require Export L4.expression.
+(*
 Print binom4. 
 Definition eval_c4 := match binom5 with
                       | Ret p =>
@@ -178,7 +219,7 @@ Definition eval_c4 := match binom5 with
 
 (* Definition vs5 := Eval native_compute in (translateTo (cTerm certiL5a) vs).  *)
 Print color5. 
-
+*)
  
 
 Definition printProg := fun prog file => L6_to_Clight.print_Clight_dest_names (snd prog) (cps.M.elements (fst prog)) file.
