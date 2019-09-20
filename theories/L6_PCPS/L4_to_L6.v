@@ -442,9 +442,12 @@ Definition convert_top (ee:ienv * expression.exp) :
 
 
 (* testing code *)
-(* 
-Require Import Compiler.allInstances.
 
+(* 
+Require Import Compiler.allInstances. 
+
+(* Require Import L6.cps L6.cps_show instances.
+From CertiCoq.L7 Require Import L6_to_Clight. *)
 
 Definition print_BigStepResult_L6 p  n:=
   let '((prim,cenv, nenv, fenv), (rho, e)) := p in
@@ -499,14 +502,16 @@ Definition let_simple :=
 Quote Recursively Definition test3_program := hd_test. 
 
 Quote Recursively Definition test4_program :=
-  (List.hd 0%nat (plus_1 (0%nat::1%nat::nil))). 
+  (List.hd 0%nat (plus_1 (0%nat::1%nat::nil))).
+
+Quote Recursively Definition test5_program := (List.hd_error (false::nil)). 
 
 
 (* Quote Recursively Definition test3_program := *)
   
 
 Definition test_eval :=
-  Eval native_compute in (translateTo (cTerm certiL4) test4_program).
+  Eval native_compute in (translateTo (cTerm certiL4) test5_program).
 
 Print test_eval.
 
@@ -522,7 +527,7 @@ Definition test_result :=
     let pr := cps.M.empty (list val -> option val) in
     let fenv := cps.M.empty fTyInfo in
     let env := cps.M.empty val in
-    print_BigStepResult_L6 ((pr, cenv, nenv, fenv), (env, e)) 280%nat
+    print_BigStepResult_L6 ((pr, cenv, nenv, fenv), (env, e)) 250%nat
   | None =>
     L7.L6_to_Clight.print ("Failed during comp_L6")
   end.
@@ -544,8 +549,6 @@ Extract Constant   varImplDummyPair.varClassNVar =>
 
 Extraction "test1.ml" test_result. 
 *)
-
-
 
 
 

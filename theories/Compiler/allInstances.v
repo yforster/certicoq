@@ -45,7 +45,8 @@ Definition ext_comp `{F:utils.Fuel} := fun prog =>
   | Ret xx => xx
   | _ => ((M.empty _, M.empty _, M.empty _, M.empty _) , (M.empty _, cps.Ehalt 1%positive))
   end.
- 
+
+Require Import L4_to_L6. 
 Require Import L6_to_Clight.
 (* Require Import Clightexec.*)
 Require Import compcert.lib.Maps.
@@ -63,7 +64,7 @@ Definition isptrIdent:positive := 82.
 Definition caseIdent:positive := 83.
 
 
-Definition compile_L7 (t : cTerm certiL6) : L5_to_L6.nEnv * Clight.program * Clight.program :=
+Definition compile_L7 (t : cTerm certiL6) : L4_to_L6.nEnv * Clight.program * Clight.program :=
   let '((_, cenv , nenv, fenv), (_, prog)) := t in
   let p := compile argsIdent allocIdent limitIdent gcIdent mainIdent bodyIdent threadInfIdent tinfIdent heapInfIdent numArgsIdent isptrIdent caseIdent
                    prog cenv nenv in
@@ -84,11 +85,11 @@ Definition compile_template_L4 `{F:utils.Fuel} (p : Template.Ast.program) : exce
 
 Require Import L6.cps L6.cps_show.
 
-From CertiCoq.L6 Require Import uncurry shrink_cps beta_contraction
+From CertiCoq.L6 Require Import L4_to_L6 uncurry shrink_cps beta_contraction
      closure_conversion hoisting cps.  
 
 (* Instance from L4 to L6 *)
-
+(*
 Instance certiL4_t0_L6: 
   CerticoqTranslation (cTerm certiL4) (cTerm certiL6) := 
   fun v =>
@@ -114,12 +115,12 @@ Instance certiL4_t0_L6:
       | None => Exc "failed converting from L4 to L6"
       end)
     end.
+*)
 
-
-Definition compile_template_L7 `{F:utils.Fuel} (p : Template.Ast.program) : exception (L5_to_L6.nEnv * Clight.program * Clight.program)  :=
+Definition compile_template_L7 `{F:utils.Fuel} (p : Template.Ast.program) : exception (L4_to_L6.nEnv * Clight.program * Clight.program)  :=
   compile_opt_L7 (translateTo (cTerm certiL6) p).
 
-(* Set Printing Implicit. *)
+Set Printing Implicit.
 
 
 Open Scope positive_scope.

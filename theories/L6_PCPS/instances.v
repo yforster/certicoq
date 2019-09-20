@@ -8,7 +8,7 @@ From CertiCoq.Common Require Import certiClasses certiClassesLinkable Common.
 Require Import Coq.Unicode.Utf8.
 
 Require Import ZArith.
-From CertiCoq.L6 Require Import cps cps_util eval shrink_cps L4_to_L6 L5_to_L6 beta_contraction uncurry closure_conversion hoisting.
+From CertiCoq.L6 Require Import cps cps_util eval shrink_cps L4_to_L6 beta_contraction uncurry closure_conversion hoisting.
 From CertiCoq.L7 Require Import L6_to_Clight.
 
 
@@ -105,7 +105,7 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 
 Require Import ExtLib.Structures.Monads.
   
-
+(*
 Instance certiL5_t0_L6: 
   CerticoqTranslation (cTerm certiL5) (cTerm certiL6) := 
   fun v =>
@@ -131,8 +131,8 @@ Instance certiL5_t0_L6:
       | None => Exc "failed converting from L5 to L6"
       end)
     end.
+*)
 
-(*
 Instance certiL4_t0_L6: 
   CerticoqTranslation (cTerm certiL4) (cTerm certiL6) := 
   fun v =>
@@ -158,4 +158,3 @@ Instance certiL4_t0_L6:
       | None => Exc "failed converting from L4 to L6"
       end)
     end.
-*)
