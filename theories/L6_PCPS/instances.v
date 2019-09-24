@@ -8,7 +8,7 @@ From CertiCoq.Common Require Import certiClasses certiClassesLinkable Common.
 Require Import Coq.Unicode.Utf8.
 
 Require Import ZArith.
-From CertiCoq.L6 Require Import cps cps_util eval shrink_cps L5_to_L6 beta_contraction uncurry closure_conversion hoisting.
+From CertiCoq.L6 Require Import cps cps_util eval shrink_cps L4_to_L6 L5_to_L6 beta_contraction uncurry closure_conversion hoisting.
 From CertiCoq.L7 Require Import L6_to_Clight.
 
 
@@ -105,7 +105,7 @@ Require Import ExtLib.Data.Monads.OptionMonad.
 
 Require Import ExtLib.Structures.Monads.
   
-
+(*
 Instance certiL5_t0_L6: 
   CerticoqTranslation (cTerm certiL5) (cTerm certiL6) := 
   fun v =>
@@ -129,5 +129,32 @@ Instance certiL5_t0_L6:
         in
         Ret ((M.empty _ , (add_cloTag bogus_cloTag bogus_cloiTag cenv'), nenv', M.empty _),  (M.empty _,   shrink_top t'))
       | None => Exc "failed converting from L5 to L6"
+      end)
+    end.
+ *)
+
+Instance certiL4_t0_L6: 
+  CerticoqTranslation (cTerm certiL4) (cTerm certiL6) := 
+  fun v =>
+    match v with
+    | pair venv vt =>
+      (match L4_to_L6.convert_top (venv, vt) with
+      | Some r =>         
+        let '(cenv, nenv, fenv, next_cTag, next_iTag, e) :=  r in
+        let '(e, (d, s), fenv) := uncurry_fuel 100 (shrink_cps.shrink_top e) fenv in   
+        (* let e := postuncurry_contract e s d in            *)
+        (* let e := shrink_cps.shrink_top e in  *)
+        (* let e :=  inlinesmall_contract e 10 10 in *)
+        let e := inline_uncurry_contract e s 10 10 in  
+        let e := shrink_cps.shrink_top e in
+        let '(cenv',nenv', t') := closure_conversion_hoist
+                                    bogus_cloTag
+                                    e
+                                    next_cTag
+                                    next_iTag
+                                    cenv nenv
+        in
+        Ret ((M.empty _ , (add_cloTag bogus_cloTag bogus_cloiTag cenv'), nenv', M.empty _),  (M.empty _,   shrink_top t'))
+      | None => Exc "failed converting from L4 to L6"
       end)
     end.
