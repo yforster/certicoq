@@ -161,6 +161,7 @@ extraction/variables.ml
 extraction/identifiers.ml
 extraction/closure_conversion.ml
 extraction/l5_to_L6.ml
+extraction/l4_to_L6.ml
 extraction/l4_to_L4_1_to_L4_2.ml
 extraction/l4_2_to_L4_5.ml
 extraction/l3_to_L3_eta.mli
