@@ -5,14 +5,13 @@ Require Import Common.Common.
 Require Import Coq.micromega.Lia.
 
 From MetaCoq.Template Require utils EtaExpand.
-Require Import MetaCoq.Template.utils.bytestring.
-From MetaCoq.Erasure Require Import EAst ETyping ESpineView EEtaExpanded EInduction ERemoveParams Erasure.
+Require Import MetaCoq.Template.utils.bytestring MetaCoq.Template.utils.MCList.
+From MetaCoq.Erasure Require Import EAst ESpineView EEtaExpanded EInduction ERemoveParams Erasure EGlobalEnv.
 
 Local Open Scope bs_scope.
 Local Open Scope bool.
 Local Open Scope list.
 Set Implicit Arguments.
-
 
 Definition projection := (inductive * nat)%type.
 Lemma project_dec: forall (s1 s2:projection), {s1 = s2}+{s1 <> s2}.
@@ -343,7 +342,10 @@ Section Compile.
     | tLambda nm bod => TLambda nm (compile bod)
     | tLetIn nm dfn bod => TLetIn nm (compile dfn) (compile bod)
     | tApp fn args napp nnil with construct_viewc fn := {
-      | view_construct kn c => TConstruct kn c (list_terms (map_InP args (fun x H => compile x)))
+      | view_construct kn c =>
+            let cargs := map_InP args (fun x H => compile x) in
+            let n := MCOption.option_default (fun '(p, args) => p + args) (EGlobalEnv.lookup_constructor_pars_args e kn c) 0 in
+            TmkApps (TConstruct kn c (list_terms (firstn n cargs))) (list_terms (skipn n cargs))
       | view_other fn nconstr =>
         TmkApps (compile fn) (list_terms (map_InP args (fun x H => compile x)))
     }
@@ -389,7 +391,7 @@ Fixpoint compile_ctx (t : global_context) :=
   end.
 
 Definition expand_program (p : Ast.Env.program) :=
-  ( {| Ast.Env.universes := (fst p).(Ast.Env.universes) ; Ast.Env.declarations := EtaExpand.eta_global_env (fst p).(Ast.Env.declarations) |} , EtaExpand.eta_expand (fst p).(Ast.Env.declarations) (snd p)).
+  ( {| Ast.Env.universes := (fst p).(Ast.Env.universes) ; Ast.Env.declarations := EtaExpand.eta_global_env (fst p).(Ast.Env.declarations) |} , EtaExpand.eta_expand (fst p).(Ast.Env.declarations) [] (snd p)).
 
 Definition compile_program (p : Ast.Env.program) : Program Term :=
   let p := (erase_program (expand_program p) (MCUtils.todo "wf_env and welltyped term")) in
