@@ -119,7 +119,7 @@ CertiCoq Generate Glue -file "glue_list_sum" [ nat ].
 
 Eval compute in "Compiling vs_easy".
 
-CertiCoq Compile -O 0 -time_anf vs_easy.
+CertiCoq Compile -O 0 vs_easy.
 CertiCoq Compile -ext "_opt" vs_easy.
 CertiCoq Compile -args 1000 -config 9 -O 1 -ext "_opt_ll" vs_easy.
 (* CertiCoq Compile -O 0 -cps -ext "_cps" -time_anf vs_easy. *)
@@ -158,8 +158,8 @@ CertiCoq Compile -args 1000 -config 9 -O 1 -ext "_opt_ll" lazy_factorial. *)
 Eval compute in "Compiling color".
 Require Import ZArith.
 
-CertiCoq Compile -O 0 -time color.
-CertiCoq Compile -time -ext "_opt" color.
+CertiCoq Compile -O 0 color.
+CertiCoq Compile -ext "_opt" color.
 CertiCoq Compile -args 1000 -config 9 -O 1 -ext "_opt_ll" color.
 (* CertiCoq Compile -O 0 -time -cps -ext "_cps" color. *)
 (* CertiCoq Compile -time -cps -ext "_cps_opt" color. *)
