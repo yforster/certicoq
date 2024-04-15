@@ -1,5 +1,5 @@
 COQOPTS = -R ./ CertiCoq.Benchmarks -R lib CertiCoq.Benchmarks.lib
-CCOMPILER=clang
+CCOMPILER := $(shell { command -v clang-11 || command -v clang; } 2>/dev/null)
 
 # Names of the benchmarks
 TESTS=$(shell cat TESTS)
